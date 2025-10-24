@@ -1,0 +1,29 @@
+[
+    {
+        "filename": "img_68e49602dedfe_WhatsApp_Image_2025-09-29_at_09.54.14__4_.jpeg",
+        "likes": 1,
+        "dislikes": 0,
+        "by_ip": {
+            "127.0.0.1": "like"
+        },
+        "updated_at": "2025-10-07T07:12:28+00:00"
+    },
+    {
+        "filename": "img_68e494aecb723_WhatsApp_Image_2025-09-29_at_09.50.45__4_.jpeg",
+        "likes": 1,
+        "dislikes": 0,
+        "by_ip": {
+            "127.0.0.1": "like"
+        },
+        "updated_at": "2025-10-07T07:39:47+00:00"
+    },
+    {
+        "filename": "img_68e655ad284d6_WhatsApp_Image_2025-09-29_at_10.26.39__4_.jpeg",
+        "likes": 1,
+        "dislikes": 0,
+        "by_ip": {
+            "127.0.0.1": "like"
+        },
+        "updated_at": "2025-10-09T06:23:03+00:00"
+    }
+]

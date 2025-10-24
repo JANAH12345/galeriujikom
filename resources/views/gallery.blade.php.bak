@@ -1,0 +1,2546 @@
+@extends('layouts.app')
+
+@section('title', 'Galeri - SMKN 4 BOGOR')
+
+@push('styles')
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lightgallery@2.1.3/css/lightgallery-bundle.min.css" />
+
+<!-- Load kategori dari file JSON -->
+@php
+    $umbrellaCategoriesPath = resource_path('data/umbrella_categories.json');
+    $umbrellaCategories = is_file($umbrellaCategoriesPath) ? 
+        json_decode(file_get_contents($umbrellaCategoriesPath), true) : [];
+    $activeCategory = request('category', '');
+    $searchQuery = request('search', '');
+    
+    // Cari kategori payung yang aktif
+    $activeUmbrella = '';
+    if ($activeCategory) {
+        foreach ($umbrellaCategories as $umbrella => $subcategories) {
+            if (in_array($activeCategory, $subcategories)) {
+                $activeUmbrella = $umbrella;
+                break;
+            }
+        }
+    }
+    
+    // Data contoh - akan diganti dengan data asli
+    $sampleItems = [];
+    $displayItems = $items ?? [];
+@endphp
+
+<style>
+    /* Warna Utama */
+    :root {
+        --primary-color: #1A56DB;
+        --secondary-color: #3F83F8;
+        --dark-color: #1F2937;
+        --light-color: #F9FAFB;
+        --gray-100: #F3F4F6;
+        --gray-200: #E5E7EB;
+        --gray-500: #6B7280;
+        --gray-700: #374151;
+        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        --transition: all 0.3s ease;
+    }
+    
+    /* Header */
+    .page-header {
+        background: linear-gradient(135deg, rgba(26, 86, 219, 0.9) 0%, rgba(30, 64, 175, 0.9) 100%), 
+                    url('{{ asset('images/header-bg.jpg') }}') center/cover no-repeat;
+        color: white;
+        padding: 6rem 0 4rem;
+        margin-bottom: 2rem;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .page-header::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1;
+    }
+    
+    .page-title {
+        font-weight: 800;
+        margin-bottom: 0.5rem;
+        font-size: 2.5rem;
+        position: relative;
+        z-index: 2;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    
+    .page-subtitle {
+        opacity: 0.9;
+        font-weight: 400;
+        font-size: 1.1rem;
+        position: relative;
+        z-index: 2;
+        max-width: 700px;
+        margin: 0 auto;
+    }
+    
+    /* Breadcrumb */
+    .breadcrumb {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 0.75rem 1.5rem;
+        margin: -2rem auto 3rem;
+        border-radius: 50px;
+        display: inline-flex;
+        backdrop-filter: blur(5px);
+        position: relative;
+        z-index: 2;
+    }
+    
+    .breadcrumb-item + .breadcrumb-item::before {
+        content: '/';
+        color: rgba(255, 255, 255, 0.7);
+        padding: 0 0.5rem;
+    }
+    
+    .breadcrumb-item a {
+        color: rgba(255, 255, 255, 0.9);
+        text-decoration: none;
+        transition: color 0.3s;
+    }
+    
+    .breadcrumb-item a:hover {
+        color: white;
+    }
+    
+    .breadcrumb-item.active {
+        color: white;
+        font-weight: 500;
+    }
+    
+    /* Filter Section */
+    .filter-section {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 0.75rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        padding: 1.75rem 2rem;
+        margin: -2rem auto 3rem;
+        max-width: 1200px;
+        position: relative;
+        z-index: 10;
+        border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+    
+    .filter-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        margin-bottom: 1.25rem;
+        color: #1a365d;
+        position: relative;
+        padding-left: 1rem;
+        border-left: 4px solid #1a56db;
+    }
+    
+    .filter-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+    
+    .filter-tag {
+        padding: 0.6rem 1.25rem;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        color: #4a5568;
+        font-size: 0.95rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.25s ease;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    }
+    
+    .filter-tag:hover {
+        background: #ebf4ff;
+        border-color: #93c5fd;
+        color: #1a56db;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(26, 86, 219, 0.15);
+    }
+    
+    .filter-tag.active {
+        background: #1a56db;
+        border-color: #1a56db;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(26, 86, 219, 0.3);
+    }
+    
+    /* Main Content */
+    .main-content {
+        position: relative;
+        z-index: 1;
+        padding: 2rem 0 4rem;
+        background: #f8fafc;
+    }
+    
+    /* Gallery Grid */
+    .gallery-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1.75rem;
+        margin: 0 auto;
+        max-width: 1400px;
+        padding: 0 1.5rem;
+    }
+    
+    .gallery-item {
+        position: relative;
+        border-radius: 0.75rem;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        background: white;
+        border: 1px solid #e2e8f0;
+    }
+    
+    .gallery-item:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 15px 30px rgba(26, 86, 219, 0.15);
+        border-color: #93c5fd;
+    }
+    
+    .gallery-img-container {
+        position: relative;
+        width: 100%;
+        padding-top: 75%;
+        overflow: hidden;
+    }
+    
+    .gallery-img {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .gallery-item:hover .gallery-img {
+        transform: scale(1.08);
+    }
+    
+    .gallery-overlay {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+        padding: 1.5rem 1.25rem 1.25rem;
+        color: white;
+        opacity: 0;
+        transition: all 0.3s ease;
+        transform: translateY(10px);
+    }
+    
+    .gallery-item:hover .gallery-overlay {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    
+    .gallery-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 0.35rem;
+        color: white;
+    }
+    
+    .gallery-category {
+        font-size: 0.85rem;
+        opacity: 0.9;
+        color: rgba(255, 255, 255, 0.9);
+        display: flex;
+        align-items: center;
+    }
+    
+    .gallery-category i {
+        margin-right: 0.5rem;
+        font-size: 1rem;
+    }
+    
+    /* Empty State */
+    .empty-state {
+        grid-column: 1 / -1;
+        text-align: center;
+        padding: 5rem 1rem;
+        background: white;
+        border-radius: 1rem;
+        margin: 2rem 0;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        border: 1px dashed #e2e8f0;
+    }
+    
+    .empty-state i {
+        font-size: 4rem;
+        color: #e2e8f0;
+        margin-bottom: 1.5rem;
+        opacity: 0.7;
+    }
+    
+    .empty-state h4 {
+        color: #4a5568;
+        margin-bottom: 0.75rem;
+        font-size: 1.5rem;
+        font-weight: 600;
+    }
+    
+    .empty-state p {
+        color: #718096;
+        margin-bottom: 0;
+        font-size: 1.05rem;
+        max-width: 500px;
+        margin: 0 auto 2rem;
+    }
+    
+    .empty-state .btn {
+        padding: 0.65rem 1.75rem;
+        font-weight: 500;
+        border-radius: 8px;
+        background: #1a56db;
+        border: none;
+        transition: all 0.3s;
+    }
+    
+    .empty-state .btn:hover {
+        background: #1e40af;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(26, 86, 219, 0.25);
+    }
+    
+    /* Responsive */
+    @media (max-width: 1200px) {
+        .gallery-grid {
+            padding: 0 2rem;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .gallery-grid {
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 1.25rem;
+            padding: 0 1.25rem;
+        }
+        
+        .page-header {
+            padding: 5rem 0 3.5rem;
+            text-align: center;
+        }
+        
+        .page-title {
+            font-size: 2rem;
+        }
+        
+        .filter-section {
+            margin: 0 1rem 2rem;
+            padding: 1.5rem;
+            width: auto;
+        }
+        
+        .filter-tags {
+            justify-content: center;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .gallery-grid {
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+            padding: 0 1rem;
+        }
+        
+        .page-header {
+            padding: 4rem 0 3rem;
+        }
+        
+        .page-title {
+            font-size: 1.75rem;
+        }
+        
+        .filter-section {
+            padding: 1.25rem;
+        }
+        
+        .filter-tag {
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+        }
+    }
+</style>
+@endpush
+
+@section('content')
+<div class="container py-4">
+    <!-- Gallery Header -->
+    <div class="gallery-header bg-white p-4 rounded-3 shadow-sm mb-4">
+        <div class="row align-items-center">
+            <div class="col-md-6 mb-3 mb-md-0">
+                <h1 class="h4 fw-bold text-primary mb-1">Galeri Sekolah</h1>
+                <p class="text-muted mb-0">SMK Negeri 4 Bogor</p>
+            </div>
+            <div class="col-md-6">
+                <div class="d-flex justify-content-md-end gap-4">
+                    <div class="text-center">
+                        <div class="d-flex align-items-center justify-content-center mb-1">
+                            <div class="bg-primary bg-opacity-10 p-2 rounded-circle me-2">
+                                <i class="fas fa-images text-primary"></i>
+                            </div>
+                            <div>
+                                <div class="fw-bold h5 mb-0">1.2K</div>
+                            </div>
+                        </div>
+                        <small class="text-muted">Gambar</small>
+                    </div>
+                    <div class="text-center">
+                        <div class="d-flex align-items-center justify-content-center mb-1">
+                            <div class="bg-primary bg-opacity-10 p-2 rounded-circle me-2">
+                                <i class="fas fa-folder text-primary"></i>
+                            </div>
+                            <div>
+                                <div class="fw-bold h5 mb-0">15</div>
+                            </div>
+                        </div>
+                        <small class="text-muted">Album</small>
+                    </div>
+                    <div class="text-center">
+                        <div class="d-flex align-items-center justify-content-center mb-1">
+                            <div class="bg-primary bg-opacity-10 p-2 rounded-circle me-2">
+                                <i class="fas fa-users text-primary"></i>
+                            </div>
+                            <div>
+                                <div class="fw-bold h5 mb-0">8</div>
+                            </div>
+                        </div>
+                        <small class="text-muted">Kategori</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Section -->
+        <div class="filter-section">
+            <h5 class="filter-title">Filter Berdasarkan Kategori</h5>
+            
+            <div class="filter-tags">
+                <a href="{{ route('gallery') }}" class="filter-tag {{ !$activeCategory ? 'active' : '' }}">
+                    Semua
+                </a>
+                
+                @foreach($umbrellaCategories as $umbrella => $subcategories)
+                    <div class="dropdown d-inline-block">
+                        <button class="filter-tag dropdown-toggle {{ $activeUmbrella === $umbrella ? 'active' : '' }}" 
+                                type="button" 
+                                id="dropdown-{{ Str::slug($umbrella) }}" 
+                                data-bs-toggle="dropdown" 
+                                aria-expanded="false">
+                            {{ $umbrella }}
+                        </button>
+                        <ul class="dropdown-menu" aria-labelledby="dropdown-{{ Str::slug($umbrella) }}">
+                            @foreach($subcategories as $subcategory)
+                                <li>
+                                    <a class="dropdown-item {{ $activeCategory === $subcategory ? 'active' : '' }}" 
+                                       href="?category={{ urlencode($subcategory) }}">
+                                        {{ $subcategory }}
+                                    </a>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endforeach
+            </div>
+            
+            <!-- Search Box -->
+            <div class="mt-4">
+                <form action="{{ route('gallery') }}" method="GET" class="search-form">
+                    <div class="input-group">
+                        <input type="text" 
+                               name="search" 
+                               class="form-control search-input" 
+                               placeholder="Cari foto..." 
+                               value="{{ $searchQuery }}">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search"></i>
+                        </button>
+                        @if($activeCategory || $searchQuery)
+                            <a href="{{ route('gallery') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times"></i> Reset
+                            </a>
+                        @endif
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Gallery Grid -->
+        <div class="gallery-grid">
+            @forelse($items as $item)
+                @php
+                    $imageUrl = $item['url'] ?? (isset($item['filename']) ? asset('uploads/gallery/' . $item['filename']) : 'https://via.placeholder.com/500x500?text=Galeri+SMKN+4');
+                    $title = $item['title'] ?? 'Galeri Foto';
+                    $category = $item['category'] ?? 'Lainnya';
+                @endphp
+                
+                <a href="{{ $imageUrl }}" class="gallery-item" 
+                   data-src="{{ $imageUrl }}" 
+                   data-sub-html="<h4>{{ $title }}</h4><p>{{ $category }}</p>">
+                    <div class="gallery-img-container">
+                        <img src="{{ $imageUrl }}" alt="{{ $title }}" class="gallery-img">
+                    </div>
+                    <div class="gallery-overlay">
+                        <h5 class="gallery-title">{{ $title }}</h5>
+                        <div class="gallery-category">
+                            <i class="fas fa-folder"></i> {{ $category }}
+                        </div>
+                    </div>
+                </a>
+            @empty
+                <div class="col-12 text-center py-5">
+                    <div class="empty-state">
+                        <i class="far fa-images fa-4x mb-3"></i>
+                        <h4>Belum ada foto di galeri</h4>
+                        <p class="text-muted">Silakan kembali nanti untuk melihat foto-foto terbaru</p>
+                    </div>
+                </div>
+            @endforelse
+        </div>
+        
+        <!-- Pagination -->
+        @if(isset($items) && count($items) > 0)
+            @if(method_exists($items, 'links'))
+                <div class="mt-4">
+                    {{ $items->appends(request()->query())->links() }}
+                </div>
+            @endif
+        @endif
+    </div>
+</main>
+
+<!-- Back to Top Button -->
+<button type="button" class="btn btn-primary btn-floating btn-lg rounded-circle" id="btn-back-to-top">
+    <i class="fas fa-arrow-up"></i>
+</button>
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lightgallery@2.1.3/lightgallery.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lightgallery@2.1.3/plugins/zoom/lg-zoom.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lightgallery@2.1.3/plugins/fullscreen/lg-fullscreen.umd.js"></script>
+
+<script>
+    // Initialize lightGallery
+    document.addEventListener('DOMContentLoaded', function() {
+        // LightGallery initialization
+        if (document.querySelector('.gallery-grid')) {
+            lightGallery(document.querySelector('.gallery-grid'), {
+                selector: '.gallery-item',
+                speed: 500,
+                download: true,
+                zoom: true,
+                counter: true,
+                getCaptionFromTitleOrAlt: false,
+                enableDrag: true,
+                enableSwipe: true,
+                preload: 3,
+                exThumbImage: 'data-src'
+            });
+        }
+
+        // Back to top button
+        const backToTopButton = document.getElementById('btn-back-to-top');
+        
+        window.addEventListener('scroll', () => {
+            if (window.pageYOffset > 300) {
+                backToTopButton.style.display = 'block';
+            } else {
+                backToTopButton.style.display = 'none';
+            }
+        });
+        
+        backToTopButton.addEventListener('click', () => {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
+
+        // Initialize dropdown toggles
+        const dropdownElementList = [].slice.call(document.querySelectorAll('.dropdown-toggle'));
+        dropdownElementList.forEach(dropdownToggleEl => {
+            return new bootstrap.Dropdown(dropdownToggleEl);
+        });
+    });
+</script>
+@endpush
+                                aria-expanded="false">
+                            {{ $umbrella }}
+                        </button>
+                        <ul class="dropdown-menu" aria-labelledby="dropdown-{{ Str::slug($umbrella) }}">
+                            @foreach($subcategories as $subcategory)
+                                <li>
+                                    <a class="dropdown-item {{ request('category') === $subcategory ? 'active' : '' }}" 
+                                       href="?category={{ urlencode($subcategory) }}">
+                                        {{ $subcategory }}
+                                    </a>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endforeach
+            </div>
+                
+                // Cari kategori payung yang aktif
+                if ($activeCategory) {
+                    foreach ($umbrellaCategories as $umbrella => $subcategories) {
+                        if (in_array($activeCategory, $subcategories)) {
+                            $activeUmbrella = $umbrella;
+                            break;
+                        }
+                    }
+                }
+            @endphp
+            
+            @foreach($umbrellaCategories as $umbrella => $subcategories)
+                <div class="dropdown d-inline-block">
+                    <button class="filter-tag dropdown-toggle {{ $activeUmbrella === $umbrella ? 'active' : '' }}" 
+                            type="button" 
+                            id="dropdown-{{ Str::slug($umbrella) }}" 
+                            data-bs-toggle="dropdown" 
+                            aria-expanded="false">
+                        {{ $umbrella }}
+                    </button>
+                    <ul class="dropdown-menu" aria-labelledby="dropdown-{{ Str::slug($umbrella) }}">
+                        @foreach($subcategories as $subcategory)
+                            <li>
+                                <a class="dropdown-item {{ request('category') === $subcategory ? 'active' : '' }}" 
+                                   href="?category={{ urlencode($subcategory) }}">
+                                    {{ $subcategory }}
+                                </a>
+                            </li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endforeach
+        </div>
+                </li>
+            </ul>
+        </nav>
+    </div>
+    
+    <!-- Photo Modal -->
+    <div class="modal fade" id="photoModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
+            <div class="modal-content border-0">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title" id="photoModalLabel"></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center p-0">
+                    <img src="" alt="" class="img-fluid" id="modalPhoto">
+                </div>
+                <div class="modal-footer justify-content-between border-0">
+                    <div>
+                        <button class="btn btn-outline-danger like-btn-modal">
+                            <i class="far fa-thumbs-up"></i>
+                            <span id="modalLikeCount">0</span>
+                        </button>
+                        <button class="btn btn-outline-primary ms-2 comment-btn-modal" data-bs-target="#commentModal" data-bs-toggle="modal">
+                            <i class="far fa-comment"></i>
+                            <span id="modalCommentCount">0</span>
+                        </button>
+                    </div>
+                    <a href="#" class="btn btn-primary download-btn-modal">
+                        <i class="fas fa-download me-2"></i>Unduh
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Comment Modal -->
+    <div class="modal fade" id="commentModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Komentar</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="commentsContainer">
+                    <!-- Comments will be loaded here -->
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Memuat...</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <form id="commentForm" class="w-100">
+                        <input type="hidden" name="photo_id" id="commentPhotoId">
+                        <div class="input-group">
+                            <input type="text" name="comment" class="form-control" placeholder="Tulis komentar..." required>
+                            <button type="submit" class="btn btn-primary">Kirim</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    @push('scripts')
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            let currentPhotoId = null;
+            
+            // Toggle submenu dropdown
+            document.querySelectorAll('.category-tab').forEach(tab => {
+                tab.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const umbrella = this.getAttribute('data-umbrella');
+                    const category = this.getAttribute('data-category');
+                    
+                    // If clicking on an umbrella category, toggle its submenu
+                    if (umbrella && category === umbrella) {
+                        e.stopPropagation();
+                        const submenu = document.getElementById(`submenu-${umbrella.toLowerCase().replace(/\s+/g, '-')}`);
+                        submenu.classList.toggle('show');
+                        
+                        // Close other open submenus
+                        document.querySelectorAll('.subcategory-dropdown').forEach(menu => {
+                            if (menu !== submenu) {
+                                menu.classList.remove('show');
+                            }
+                        });
+                    } else {
+                        // If clicking on a category, navigate to filtered page
+                        window.location.href = `?category=${encodeURIComponent(category)}`;
+                    }
+                });
+            });
+            
+            // Handle subcategory click
+            document.querySelectorAll('.subcategory-item').forEach(item => {
+                item.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const category = this.getAttribute('data-category');
+                    window.location.href = `?category=${encodeURIComponent(category)}`;
+                });
+            });
+            
+            // Handle search
+            const searchInput = document.getElementById('searchInput');
+            let searchTimeout;
+            
+            searchInput.addEventListener('input', function() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    const searchTerm = this.value.toLowerCase();
+                    const cards = document.querySelectorAll('.gallery-card');
+                    
+                    cards.forEach(card => {
+                        const title = card.querySelector('.gallery-title').textContent.toLowerCase();
+                        const category = card.getAttribute('data-category').toLowerCase();
+                        
+                        if (title.includes(searchTerm) || category.includes(searchTerm)) {
+                            card.style.display = '';
+                        } else {
+                            card.style.display = 'none';
+                        }
+                    });
+                }, 300);
+            });
+            
+            // Handle sort
+            const sortSelect = document.getElementById('sortSelect');
+            sortSelect.addEventListener('change', function() {
+                const container = document.getElementById('galleryGrid');
+                const cards = Array.from(container.querySelectorAll('.gallery-card'));
+                
+                cards.sort((a, b) => {
+                    if (this.value === 'latest') {
+                        return new Date(b.getAttribute('data-date')) - new Date(a.getAttribute('data-date'));
+                    } else if (this.value === 'oldest') {
+                        return new Date(a.getAttribute('data-date')) - new Date(b.getAttribute('data-date'));
+                    } else if (this.value === 'most-liked') {
+                        return parseInt(b.getAttribute('data-likes')) - parseInt(a.getAttribute('data-likes'));
+                    }
+                    return 0;
+                });
+                
+                // Re-append cards in new order
+                cards.forEach(card => container.appendChild(card));
+            });
+            
+            // Photo modal
+            const photoModal = document.getElementById('photoModal');
+            if (photoModal) {
+                photoModal.addEventListener('show.bs.modal', function(event) {
+                    const button = event.relatedTarget;
+                    const imageUrl = button.getAttribute('data-image');
+                    const title = button.getAttribute('data-title');
+                    
+                    const modal = this;
+                    modal.querySelector('#modalPhoto').src = imageUrl;
+                    modal.querySelector('#photoModalLabel').textContent = title || '';
+                    
+                    // Set download link
+                    modal.querySelector('.download-btn-modal').href = `#`;
+                    modal.querySelector('.download-btn-modal').setAttribute('data-image-url', imageUrl);
+                });
+            }
+            
+            // Handle download
+            document.querySelectorAll('.download-btn, .download-btn-modal').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const photoId = this.getAttribute('data-photo-id');
+                    const imageUrl = this.getAttribute('data-image-url');
+                    
+                    // Create temporary link for download
+                    const link = document.createElement('a');
+                    link.href = imageUrl;
+                    link.download = imageUrl.split('/').pop() || 'download.jpg';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    
+                    // Log download
+                    if (photoId) {
+                        fetch('{{ route("gallery.download") }}', {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': csrfToken,
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            body: JSON.stringify({
+                                photo_id: photoId,
+                                photo_url: imageUrl
+                            })
+                        }).then(response => response.json())
+                          .then(data => {
+                              if (data.success) {
+                                  // Update download count
+                                  const countElement = document.querySelector(`[data-photo-id="${photoId}"] .download-count`);
+                                  if (countElement) {
+                                      countElement.textContent = parseInt(countElement.textContent) + 1;
+                                  }
+                              }
+                          });
+                    }
+                });
+            });
+            
+            // Handle like button
+            document.querySelectorAll('.like-btn, .like-btn-modal').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const photoId = this.getAttribute('data-photo-id');
+                    if (!photoId) return;
+                    
+                    const isActive = this.classList.contains('active');
+                    const action = isActive ? 'remove' : 'like';
+                    
+                    fetch('{{ route("gallery.react") }}', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': csrfToken,
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify({
+                            photo_id: photoId,
+                            action: action
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Toggle active state
+                            this.classList.toggle('active', !isActive);
+                            
+                            // Update like count
+                            const countElement = this.querySelector('.like-count') || document.getElementById('modalLikeCount');
+                            if (countElement) {
+                                countElement.textContent = data.likes || 0;
+                            }
+                            
+                            // If it's the modal like button, also update the card's like button
+                            if (this.classList.contains('like-btn-modal')) {
+                                const cardLikeBtn = document.querySelector(`.like-btn[data-photo-id="${photoId}"]`);
+                                if (cardLikeBtn) {
+                                    cardLikeBtn.classList.toggle('active', !isActive);
+                                    const cardCount = cardLikeBtn.querySelector('.like-count');
+                                    if (cardCount) {
+                                        cardCount.textContent = data.likes || 0;
+                                    }
+                                }
+                            } else {
+                                // If it's the card like button, update the modal's like button if open
+                                const modalLikeBtn = document.querySelector('.like-btn-modal');
+                                if (modalLikeBtn && modalLikeBtn.getAttribute('data-photo-id') === photoId) {
+                                    modalLikeBtn.classList.toggle('active', !isActive);
+                                    const modalCount = modalLikeBtn.querySelector('.like-count') || document.getElementById('modalLikeCount');
+                                    if (modalCount) {
+                                        modalCount.textContent = data.likes || 0;
+                                    }
+                                }
+                            }
+                        }
+                    });
+                });
+            });
+            
+            // Handle comment form submission
+            const commentForm = document.getElementById('commentForm');
+            if (commentForm) {
+                commentForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    const formData = new FormData(this);
+                    const photoId = formData.get('photo_id');
+                    
+                    fetch('{{ route("gallery.comment") }}', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': csrfToken,
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            photo_id: photoId,
+                            comment: formData.get('comment')
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Clear the form
+                            this.reset();
+                            
+                            // Reload comments
+                            loadComments(photoId);
+                            
+                            // Update comment count
+                            const commentCountElements = document.querySelectorAll(`[data-photo-id="${photoId}"] .comment-count`);
+                            commentCountElements.forEach(el => {
+                                el.textContent = parseInt(el.textContent) + 1;
+                            });
+                            
+                            // Show success message
+                            alert('Komentar berhasil ditambahkan');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Terjadi kesalahan saat mengirim komentar');
+                    });
+                });
+            }
+            
+            // Function to load comments
+            function loadComments(photoId) {
+                const container = document.getElementById('commentsContainer');
+                container.innerHTML = `
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Memuat...</span>
+                        </div>
+                    </div>`;
+                
+                fetch(`/gallery/comments/${photoId}`)
+                    .then(response => response.json())
+                    .then(comments => {
+                        if (comments.length === 0) {
+                            container.innerHTML = '<div class="text-center py-4 text-muted">Belum ada komentar</div>';
+                            return;
+                        }
+                        
+                        let html = '<div class="comments-list">';
+                        comments.forEach(comment => {
+                            html += `
+                                <div class="comment-item mb-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <strong>${comment.user?.name || 'Anonim'}</strong>
+                                        <small class="text-muted">${new Date(comment.created_at).toLocaleDateString()}</small>
+                                    </div>
+                                    <p class="mb-0">${comment.comment}</p>
+                                </div>
+                            `;
+                        });
+                        html += '</div>';
+                        
+                        container.innerHTML = html;
+                    })
+                    .catch(error => {
+                        console.error('Error loading comments:', error);
+                        container.innerHTML = '<div class="text-center py-4 text-danger">Gagal memuat komentar</div>';
+                    });
+            }
+            
+            // Handle comment button click
+            document.querySelectorAll('.comment-btn, .comment-btn-modal').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const photoId = this.getAttribute('data-photo-id');
+                    if (photoId) {
+                        document.getElementById('commentPhotoId').value = photoId;
+                        loadComments(photoId);
+                    }
+                });
+            });
+            
+            // Initialize tooltips
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        });
+    </script>
+    @endpush
+                        </div>
+                        
+                        <!-- Sort and Search -->
+                        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+                            <div class="search-box">
+                                <i class="fas fa-search"></i>
+                                <input type="text" class="form-control" placeholder="Cari foto..." id="searchInput">
+                            </div>
+                            
+                            <div class="sort-dropdown">
+                                <select class="form-select" id="sortBy">
+                                    <option value="latest" {{ request('sort') == 'latest' ? 'selected' : '' }}>Terbaru</option>
+                                    <option value="oldest" {{ request('sort') == 'oldest' ? 'selected' : '' }}>Terlama</option>
+                                    <option value="popular" {{ request('sort') == 'popular' ? 'selected' : '' }}>Paling Populer</option>
+                                </select>
+                                <i class="fas fa-sort"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <style>
+                /* Filter Section Styles */
+                .filter-section {
+                    background: #fff;
+                    padding: 2rem;
+                    border-radius: 16px;
+                    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+                }
+                
+                .section-title {
+                    font-size: 1.75rem;
+                    font-weight: 700;
+                    color: #1F2937;
+                    position: relative;
+                    padding-bottom: 0.75rem;
+                }
+                
+                .section-title::after {
+                    content: '';
+                    position: absolute;
+                    bottom: 0;
+                    left: 0;
+                    width: 60px;
+                    height: 4px;
+                    background: linear-gradient(90deg, #3F83F8 0%, #1A56DB 100%);
+                    border-radius: 2px;
+                }
+                
+                /* Category Tabs */
+                .category-tabs {
+                    position: relative;
+                }
+                
+                .filter-tab {
+                    display: inline-flex;
+                    align-items: center;
+                    padding: 0.6rem 1.2rem;
+                    border-radius: 8px;
+                    border: none;
+                    background: #F3F4F6;
+                    color: #4B5563;
+                    font-weight: 500;
+                    font-size: 0.95rem;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    text-decoration: none;
+                    margin-bottom: 0.5rem;
+                    border: 1px solid transparent;
+                }
+                
+                .filter-tab:hover {
+                    background: #E5E7EB;
+                    color: #1F2937;
+                }
+                
+                .filter-tab.active {
+                    background: #1A56DB;
+                    color: white;
+                    box-shadow: 0 4px 12px rgba(26, 86, 219, 0.2);
+                }
+                
+                .filter-tab .fa-chevron-down {
+                    font-size: 0.7rem;
+                    margin-left: 0.5rem;
+                    transition: transform 0.2s;
+                }
+                
+                .filter-tab[aria-expanded="true"] .fa-chevron-down {
+                    transform: rotate(180deg);
+                }
+                
+                /* Dropdown Menu */
+                .dropdown-menu {
+                    border: none;
+                    border-radius: 12px;
+                    padding: 0.5rem;
+                    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+                    margin-top: 0.5rem;
+                    min-width: 220px;
+                    border: 1px solid #E5E7EB;
+                }
+                
+                .dropdown-item {
+                    padding: 0.6rem 1rem;
+                    border-radius: 8px;
+                    font-size: 0.9rem;
+                    color: #4B5563;
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    transition: all 0.2s;
+                }
+                
+                .dropdown-item:hover, .dropdown-item:focus {
+                    background: #F3F4F6;
+                    color: #1A56DB;
+                }
+                
+                .dropdown-item.active {
+                    background: #EFF6FF;
+                    color: #1A56DB;
+                    font-weight: 500;
+                }
+                
+                /* Active Category Badge */
+                .active-category-indicator .badge {
+                    display: inline-flex;
+                    align-items: center;
+                    background: #EFF6FF;
+                    color: #1A56DB;
+                    font-weight: 500;
+                    padding: 0.5rem 1rem;
+                    border-radius: 50px;
+                    font-size: 0.9rem;
+                    border: 1px solid #DBEAFE;
+                }
+                
+                .btn-close-category {
+                    background: none;
+                    border: none;
+                    color: #93C5FD;
+                    margin-left: 0.5rem;
+                    padding: 0.25rem;
+                    border-radius: 50%;
+                    width: 20px;
+                    height: 20px;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    transition: all 0.2s;
+                }
+                
+                .btn-close-category:hover {
+                    background: rgba(255, 255, 255, 0.5);
+                    color: #3B82F6;
+                }
+                
+                /* Search Box */
+                .search-box {
+                    position: relative;
+                    flex: 1;
+                    max-width: 400px;
+                }
+                
+                .search-box i {
+                    position: absolute;
+                    left: 1rem;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    color: #9CA3AF;
+                }
+                
+                .search-box .form-control {
+                    padding-left: 2.5rem;
+                    border-radius: 10px;
+                    border: 1px solid #E5E7EB;
+                    height: 46px;
+                    transition: all 0.2s;
+                }
+                
+                .search-box .form-control:focus {
+                    border-color: #93C5FD;
+                    box-shadow: 0 0 0 3px rgba(147, 197, 253, 0.3);
+                }
+                
+                /* Sort Dropdown */
+                .sort-dropdown {
+                    position: relative;
+                    min-width: 180px;
+                }
+                
+                .sort-dropdown .form-select {
+                    padding-right: 2.5rem;
+                    border-radius: 10px;
+                    border: 1px solid #E5E7EB;
+                    height: 46px;
+                    cursor: pointer;
+                    -webkit-appearance: none;
+                    -moz-appearance: none;
+                    appearance: none;
+                    background-color: #fff;
+                }
+                
+                .sort-dropdown i {
+                    position: absolute;
+                    right: 1rem;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    pointer-events: none;
+                    color: #6B7280;
+                }
+                
+                @media (max-width: 767.98px) {
+                    .filter-section {
+                        padding: 1.5rem;
+                    }
+                    
+                    .section-title {
+                        font-size: 1.5rem;
+                    }
+                    
+                    .filter-tab {
+                        padding: 0.5rem 1rem;
+                        font-size: 0.9rem;
+                    }
+                    
+                    .search-box {
+                        max-width: 100%;
+                    }
+                }
+            </style>
+
+            <!-- Gallery Grid -->
+            <style>
+                /* Warna Utama */
+                :root {
+                    --primary-color: #1A56DB;
+                    --secondary-color: #3F83F8;
+                    --accent-color: #E74694;
+                    --text-color: #1F2937;
+                    --light-gray: #F3F4F6;
+                    --dark-overlay: rgba(0, 0, 0, 0.6);
+                }
+
+                /* Container Utama */
+                .gallery-container {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+                    gap: 24px;
+                    padding: 24px 0;
+                }
+                
+                /* Item Galeri */
+                .gallery-item {
+                    position: relative;
+                    border-radius: 16px;
+                    overflow: hidden;
+                    cursor: pointer;
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                    aspect-ratio: 1;
+                    background: var(--light-gray);
+                    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+                    border: 1px solid rgba(0, 0, 0, 0.05);
+                }
+                
+                .gallery-item:hover {
+                    transform: translateY(-4px);
+                    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+                }
+                
+                .gallery-item img {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+                }
+                
+                .gallery-item:hover img {
+                    transform: scale(1.08);
+                }
+                
+                /* Overlay */
+                .gallery-item .overlay {
+                    position: absolute;
+                    bottom: 0;
+                    left: 0;
+                    right: 0;
+                    background: linear-gradient(to top, var(--dark-overlay) 0%, transparent 100%);
+                    padding: 24px 20px 20px;
+                    color: white;
+                    opacity: 0;
+                    transition: opacity 0.3s ease;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: flex-end;
+                    height: 100%;
+                }
+                
+                .gallery-item:hover .overlay {
+                    opacity: 1;
+                }
+                
+                /* Teks */
+                .gallery-item .title {
+                    font-weight: 600;
+                    margin-bottom: 6px;
+                    font-size: 1.2rem;
+                    line-height: 1.3;
+                    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+                }
+                
+                .gallery-item .date {
+                    font-size: 0.9rem;
+                    opacity: 0.9;
+                    color: rgba(255, 255, 255, 0.9);
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                }
+                
+                .gallery-item .date:before {
+                    content: '\f073'; /* Font Awesome calendar icon */
+                    font-family: 'Font Awesome 5 Free';
+                    font-weight: 400;
+                    font-size: 0.8em;
+                }
+                
+                /* Badge Kategori */
+                .gallery-item .category-badge {
+                    position: absolute;
+                    top: 16px;
+                    right: 16px;
+                    background: var(--accent-color);
+                    color: white;
+                    padding: 6px 12px;
+                    border-radius: 20px;
+                    font-size: 0.75rem;
+                    font-weight: 600;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                    opacity: 0;
+                    transform: translateY(10px);
+                    transition: all 0.3s ease;
+                    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+                }
+                
+                .gallery-item:hover .category-badge {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+                
+                .gallery-card::before {
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: linear-gradient(145deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+                    z-index: -1;
+                    opacity: 0;
+                    transition: opacity 0.3s ease;
+                }
+                
+                .gallery-card:hover {
+                    transform: translateY(-8px) scale(1.02);
+                    box-shadow: 0 15px 50px rgba(0, 0, 0, 0.2);
+                }
+                
+                .gallery-card:hover::before {
+                    opacity: 1;
+                }
+                
+                .gallery-card .card-img-overlay {
+                    background: linear-gradient(0deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.1) 100%);
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: flex-end;
+                    opacity: 0;
+                    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+                    padding: 1.5rem;
+                }
+                
+                .gallery-card:hover .card-img-overlay {
+                    opacity: 1;
+                    backdrop-filter: blur(3px);
+                }
+                
+                .gallery-card .card-title {
+                    font-weight: 600;
+                    text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+                    margin-bottom: 0.75rem;
+                    font-size: 1.1rem;
+                    letter-spacing: 0.5px;
+                }
+                
+                .gallery-card .card-stats {
+                    background: rgba(0, 0, 0, 0.4);
+                    backdrop-filter: blur(8px);
+                    -webkit-backdrop-filter: blur(8px);
+                    border-radius: 20px;
+                    padding: 6px 14px;
+                    display: inline-flex;
+                    align-items: center;
+                    margin-right: 8px;
+                    margin-bottom: 8px;
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    transition: all 0.3s ease;
+                }
+                
+                .gallery-card .card-stats:hover {
+                    background: rgba(255, 255, 255, 0.15);
+                    transform: translateY(-2px);
+                }
+                
+                .gallery-card .card-stats i {
+                    margin-right: 6px;
+                    font-size: 0.9em;
+                }
+                
+                /* Animation for the cards */
+                @keyframes fadeInUp {
+                    from {
+                        opacity: 0;
+                        transform: translateY(20px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+                
+                .gallery-card {
+                    animation: fadeInUp 0.6s ease-out forwards;
+                    opacity: 0;
+                }
+                
+                /* Staggered animation for cards */
+                .gallery-card:nth-child(1) { animation-delay: 0.1s; }
+                .gallery-card:nth-child(2) { animation-delay: 0.2s; }
+                .gallery-card:nth-child(3) { animation-delay: 0.3s; }
+                .gallery-card:nth-child(4) { animation-delay: 0.4s; }
+            </style>
+
+            <div class="gallery-container" id="galleryGrid">
+                @php
+                    // Data contoh - akan diganti dengan data asli
+                    $sampleItems = [
+                        [
+                            'image' => 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80',
+                            'title' => 'Kunjungan Kapolres Bogor',
+                            'date' => '15 Oktober 2023',
+                            'category' => 'Kegiatan Sekolah',
+                            'views' => '1.2k',
+                            'likes' => '856'
+                        ],
+                        [
+                            'image' => 'https://images.unsplash.com/photo-1541178735493-479c1a27ed24?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80',
+                            'title' => 'Upacara Bendera HUT RI ke-78',
+                            'date' => '17 Agustus 2023',
+                            'category' => 'Kegiatan Sekolah',
+                            'views' => '2.1k',
+                            'likes' => '1.2k'
+                        ],
+                        [
+                            'image' => 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80',
+                            'title' => 'Pentas Seni dan Budaya',
+                            'date' => '2 September 2023',
+                            'category' => 'Ekstrakurikuler',
+                            'views' => '3.4k',
+                            'likes' => '2.3k'
+                        ],
+                        [
+                            'image' => 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
+                            'title' => 'Study Tour ke Bandung',
+                            'date' => '10 September 2023',
+                            'category' => 'Kegiatan Khusus',
+                            'views' => '1.8k',
+                            'likes' => '1.1k'
+                        ],
+                        [
+                            'image' => 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80',
+                            'title' => 'Lomba 17 Agustus',
+                            'date' => '17 Agustus 2023',
+                            'category' => 'Perlombaan',
+                            'views' => '2.5k',
+                            'likes' => '1.9k'
+                        ],
+                        [
+                            'image' => 'https://images.unsplash.com/photo-1541178735493-479c1a27ed24?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
+                            'title' => 'Peringatan Hari Guru',
+                            'date' => '25 November 2023',
+                            'category' => 'Acara Khusus',
+                            'views' => '1.9k',
+                            'likes' => '1.4k'
+                        ]
+                    ];
+                    
+                    // Gunakan data asli jika tersedia, jika tidak gunakan data contoh
+                    $displayItems = !empty($items) ? $items : $sampleItems;
+                @endphp
+                
+                @foreach($displayItems as $item)
+                    @php
+                        $item = (array)$item;
+                        $image = $item['image'] ?? ($item['url'] ?? 'https://via.placeholder.com/500x500?text=Galeri+SMKN+4');
+                        $title = $item['title'] ?? 'Tanpa Judul';
+                        $date = $item['date'] ?? ($item['uploaded_at'] ?? now()->format('d F Y'));
+                        $category = $item['category'] ?? 'Umum';
+                        $views = $item['views'] ?? '0';
+                        $likes = $item['likes'] ?? '0';
+                        
+                        // Warna acak untuk badge kategori
+                        $badgeColors = ['#E74694', '#3F83F8', '#1A56DB', '#0694A2', '#0E9F6E', '#D03801'];
+                        $randomColor = $badgeColors[array_rand($badgeColors)];
+                    @endphp
+                    
+                    <div class="gallery-item" data-category="{{ Str::slug($category) }}">
+                        <img src="{{ $image }}" alt="{{ $title }}" loading="lazy">
+                        <div class="overlay">
+                            <div class="category-badge" style="background: {{ $randomColor }}">
+                                {{ $category }}
+                            </div>
+                            <div class="title">{{ $title }}</div>
+                            <div class="date">
+                                <i class="far fa-calendar-alt me-1"></i> {{ $date }}
+                            </div>
+                            <div class="d-flex align-items-center mt-2">
+                                <span class="me-3">
+                                    <i class="far fa-eye me-1"></i> {{ $views }}
+                                </span>
+                                <span>
+                                    <i class="far fa-heart me-1"></i> {{ $likes }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                @endforeach
+                
+                @if(empty($displayItems) && empty($items))
+                    <div class="col-12">
+                        <div class="alert alert-info">Belum ada foto yang tersedia.</div>
+                    </div>
+                @endif
+            </div>
+
+            <!-- Pagination -->
+            @if(isset($items) && is_array($items) && count($items) > 0)
+                @php
+                    // Jika menggunakan pagination Laravel, gunakan kode ini:
+                    // {{-- {{ $items->links() }} --}}
+                    
+                    // Atau buat pagination manual sederhana
+                    $currentPage = request('page', 1);
+                    $itemsPerPage = 12; // Sesuaikan dengan jumlah item per halaman
+                    $totalPages = ceil(count($items) / $itemsPerPage);
+                @endphp
+                
+                @if($totalPages > 1)
+                    <div class="mt-4">
+                        <nav aria-label="Page navigation">
+                            <ul class="pagination justify-content-center">
+                                <li class="page-item {{ $currentPage <= 1 ? 'disabled' : '' }}">
+                                    <a class="page-link" href="{{ request()->fullUrlWithQuery(['page' => $currentPage - 1]) }}" aria-label="Previous">
+                                        <span aria-hidden="true">&laquo; Sebelumnya</span>
+                                    </a>
+                                </li>
+                                
+                                @for($i = 1; $i <= $totalPages; $i++)
+                                    <li class="page-item {{ $i == $currentPage ? 'active' : '' }}">
+                                        <a class="page-link" href="{{ request()->fullUrlWithQuery(['page' => $i]) }}">{{ $i }}</a>
+                                    </li>
+                                @endfor
+                                
+                                <li class="page-item {{ $currentPage >= $totalPages ? 'disabled' : '' }}">
+                                    <a class="page-link" href="{{ request()->fullUrlWithQuery(['page' => $currentPage + 1]) }}" aria-label="Next">
+                                        <span aria-hidden="true">Selanjutnya &raquo;</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </nav>
+                    </div>
+                @endif
+            @endif
+        </div>
+    </section>
+
+    <!-- Photo Modal -->
+    <div class="modal fade" id="photoModal" tabindex="-1" aria-labelledby="photoModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="photoModalLabel">Detail Foto</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="ratio ratio-16x9 mb-3">
+                                <img id="modalImage" src="" alt="" class="img-fluid rounded">
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div>
+                                    <button class="btn btn-outline-danger me-2 like-btn" data-action="like">
+                                        <i class="far fa-thumbs-up"></i> Suka <span id="likeCount">0</span>
+                                    </button>
+                                    <button class="btn btn-outline-secondary me-2 dislike-btn" data-action="dislike">
+                                        <i class="far fa-thumbs-down"></i> Tidak Suka <span id="dislikeCount">0</span>
+                                    </button>
+                                </div>
+                                <div>
+                                    <button class="btn btn-outline-primary" id="downloadBtn">
+                                        <i class="fas fa-download me-1"></i> Unduh
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <h5 id="modalTitle" class="mb-3"></h5>
+                            
+                            <!-- Comment Form -->
+                            <div class="mb-4">
+                                <form id="commentForm">
+                                    @csrf
+                                    <input type="hidden" name="photo_id" id="commentPhotoId">
+                                    <div class="mb-2">
+                                        <textarea name="comment" class="form-control" rows="3" placeholder="Tulis komentar Anda..." required></textarea>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary btn-sm">Kirim Komentar</button>
+                                </form>
+                            </div>
+                            
+                            <!-- Comments Section -->
+                            <h6 class="mb-2">Komentar (<span id="commentsCount">0</span>)</h6>
+                            <div id="commentsContainer" class="mb-3" style="max-height: 200px; overflow-y: auto;">
+                                <!-- Comments will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Download Modal -->
+    <div class="modal fade" id="downloadModal" tabindex="-1" aria-labelledby="downloadModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="downloadModalLabel">Unduh Foto</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="downloadForm">
+                    @csrf
+                    <input type="hidden" name="photo_id" id="downloadPhotoId">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Nama Lengkap</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="email" name="email" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="purpose" class="form-label">Tujuan Pengunduhan</label>
+                            <select class="form-select" id="purpose" name="purpose" required>
+                                <option value="">Pilih Tujuan</option>
+                                <option value="tugas_sekolah">Tugas Sekolah</option>
+                                <option value="referensi">Referensi</option>
+                                <option value="lainnya">Lainnya</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-primary">Unduh Sekarang</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    @push('styles')
+    <style>
+        .gallery-hero{ 
+            background: linear-gradient(135deg, #eef5ff 0%, #e6f0fb 100%); 
+            border: 1px solid rgba(31,78,121,.12); 
+            box-shadow: 0 10px 24px rgba(0,0,0,.06); 
+            padding: 1.25rem 1.25rem 1.5rem; 
+            border-radius: 18px; 
+        }
+        .gallery-hero .icon-wrap{ 
+            width: 56px; 
+            height: 56px; 
+            border-radius: 50%; 
+            display: inline-flex; 
+            align-items: center; 
+            justify-content: center; 
+            background: #1f4e79; 
+            color: #fff; 
+            margin-bottom: .5rem; 
+            box-shadow: 0 6px 14px rgba(31,78,121,.25); 
+        }
+        .gallery-hero h1{ 
+            margin: 0; 
+            font-weight: 800; 
+            color: #1f4e79; 
+            font-size: 1.75rem;
+        }
+        .gallery-hero p{ 
+            margin: .25rem 0 0; 
+            color: #6b7280; 
+            font-size: 1.1rem;
+        }
+        
+        /* Card styles */
+        .card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        
+        .card img {
+            transition: transform 0.5s ease, opacity 0.3s ease;
+        }
+        
+        .card:hover img {
+            transform: scale(1.05);
+            opacity: 0.9;
+        }
+        
+        .card h5 {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+        
+        .card .small {
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+    </style>
+    @endpush
+
+    @push('scripts')
+    <style>
+        .category-btn.active {
+            background-color: #0d6efd;
+            color: white;
+            border-color: #0d6efd;
+        }
+        .subcategory-item.active {
+            background-color: #f8f9fa;
+            color: #0d6efd;
+            font-weight: 500;
+        }
+        .dropdown-menu {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // CSRF Token for AJAX requests
+            const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            
+            // Handle like/dislike buttons
+            document.querySelectorAll('.like-btn, .dislike-btn').forEach(button => {
+                button.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const action = this.getAttribute('data-action');
+                    const isLike = action === 'like';
+                    const photoId = this.getAttribute('data-photo-id');
+                    
+                    fetch('{{ route("gallery.react") }}', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': csrfToken,
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify({
+                            photo_id: photoId,
+                            reaction: isLike ? 'like' : 'dislike'
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Update UI
+                            updateReactionUI(photoId, data.stats);
+                        }
+                    })
+                    .catch(error => console.error('Error:', error));
+                });
+            });
+            
+            // Update UI after reaction
+            function updateReactionUI(photoId, stats) {
+                // Update counts
+                document.querySelectorAll(`[data-photo-id="${photoId}"].like-count`).forEach(el => {
+                    el.textContent = stats.likes;
+                });
+                
+                document.querySelectorAll(`[data-photo-id="${photoId}"].dislike-count`).forEach(el => {
+                    el.textContent = stats.dislikes;
+                });
+                
+                // Update buttons state
+                document.querySelectorAll(`.like-btn[data-photo-id="${photoId}"]`).forEach(btn => {
+                    btn.classList.toggle('liked', userReaction === 'like');
+                    const icon = btn.querySelector('i');
+                    if (userReaction === 'like') {
+                        icon.classList.remove('far');
+                        icon.classList.add('fas');
+                    } else {
+                        icon.classList.remove('fas');
+                        icon.classList.add('far');
+                    }
+                });
+                
+                document.querySelectorAll(`.dislike-btn[data-photo-id="${photoId}"]`).forEach(btn => {
+                    btn.classList.toggle('disliked', userReaction === 'dislike');
+                    const icon = btn.querySelector('i');
+                    if (userReaction === 'dislike') {
+                        icon.classList.remove('far');
+                        icon.classList.add('fas');
+                    } else {
+                        icon.classList.remove('fas');
+                        icon.classList.add('far');
+                    }
+                });
+            }
+            
+            // Load comments for a photo
+            function loadComments(photoId) {
+                if (!photoId) return;
+                
+                fetch(`/gallery/comments/${photoId}`)
+                    .then(response => response.json())
+                    .then(comments => {
+                        const container = document.getElementById('commentsList');
+                        
+                        if (comments.length === 0) {
+                            container.innerHTML = `
+                                <div class="text-center text-muted py-3">
+                                    <i class="fas fa-comment-alt fa-2x mb-2"></i>
+                                    <p>Belum ada komentar. Jadilah yang pertama berkomentar!</p>
+                                </div>
+                            `;
+                            return;
+                        }
+                        
+                        container.innerHTML = comments.map(comment => `
+                            <div class="comment-item">
+                                <div class="comment-author">${comment.user.name}</div>
+                                <div class="comment-text">${comment.comment}</div>
+                                <div class="comment-time">${new Date(comment.created_at).toLocaleString()}</div>
+                            </div>
+                        `).join('');
+                    })
+                    .catch(error => console.error('Error loading comments:', error));
+            }
+            
+            // Handle comment submission
+            document.getElementById('commentForm')?.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const formData = new FormData(this);
+                const photoId = formData.get('photo_id');
+                const commentText = formData.get('comment');
+                
+                fetch('{{ route("gallery.comment") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({
+                        photo_id: photoId,
+                        comment: commentText
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Clear the comment input
+                        this.reset();
+                        // Reload comments
+                        loadComments(photoId);
+                        // Update comment count
+                        document.querySelectorAll(`.comment-count[data-photo-id="${photoId}"]`).forEach(el => {
+                            const currentCount = parseInt(el.textContent) || 0;
+                            el.textContent = currentCount + 1;
+                        });
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+            });
+            
+            // Handle like button click
+            document.addEventListener('click', function(e) {
+                // Like button in gallery
+                if (e.target.closest('.like-btn')) {
+                    const btn = e.target.closest('.like-btn');
+                    const photoId = btn.getAttribute('data-photo-id');
+                    handleReaction(photoId, 'like');
+                }
+                
+                // Dislike button in gallery
+                if (e.target.closest('.dislike-btn')) {
+                    const btn = e.target.closest('.dislike-btn');
+                    const photoId = btn.getAttribute('data-photo-id');
+                    handleReaction(photoId, 'dislike');
+                }
+                
+                // Comment button in gallery
+                if (e.target.closest('.comment-btn')) {
+                    const btn = e.target.closest('.comment-btn');
+                    const photoId = btn.getAttribute('data-photo-id');
+                    
+                    // Set the photo ID in the modal
+                    document.getElementById('commentPhotoId').value = photoId;
+                    
+                    // Show the comments section
+                    const commentsSection = document.querySelector('.comments-section');
+                    commentsSection.style.display = 'block';
+                    
+                    // Load comments
+                    loadComments(photoId);
+                }
+                
+                // Download button
+                if (e.target.closest('.download-btn')) {
+                    e.preventDefault();
+                    const btn = e.target.closest('.download-btn');
+                    const photoId = btn.getAttribute('data-photo-id');
+                    const photoUrl = btn.getAttribute('data-photo-url');
+                    
+                    // Show the download modal
+                    const downloadModal = new bootstrap.Modal(document.getElementById('downloadModal'));
+                    document.getElementById('downloadPhotoId').value = photoId;
+                    document.getElementById('downloadPhotoUrl').value = photoUrl;
+                    downloadModal.show();
+                }
+            });
+            
+            // Modal show event
+            const photoModal = document.getElementById('photoModal');
+            if (photoModal) {
+                photoModal.addEventListener('show.bs.modal', function (event) {
+                    const button = event.relatedTarget;
+                    const photoUrl = button.getAttribute('data-image');
+                    const photoId = button.getAttribute('data-photo-id');
+                    const title = button.getAttribute('data-title');
+                    const category = button.getAttribute('data-category');
+                    const description = button.getAttribute('data-description');
+                    const date = button.getAttribute('data-date');
+                    
+                    // Update modal content
+                    const modalTitle = photoModal.querySelector('.modal-title');
+                    const modalPhoto = photoModal.querySelector('#modalPhoto');
+                    const modalPhotoTitle = photoModal.querySelector('#modalPhotoTitle');
+                    const modalPhotoCategory = photoModal.querySelector('#modalPhotoCategory');
+                    const modalPhotoDescription = photoModal.querySelector('#modalPhotoDescription');
+                    const modalPhotoDate = photoModal.querySelector('#modalPhotoDate');
+                    
+                    modalTitle.textContent = title;
+                    modalPhoto.src = photoUrl;
+                    modalPhoto.alt = title;
+                    modalPhotoTitle.textContent = title;
+                    modalPhotoCategory.textContent = category;
+                    modalPhotoDescription.textContent = description || 'Tidak ada deskripsi';
+                    modalPhotoDate.textContent = date;
+                    
+                    // Update like/dislike buttons
+                    document.querySelectorAll('.like-btn-modal, .dislike-btn-modal').forEach(btn => {
+                        btn.setAttribute('data-photo-id', photoId);
+                    });
+                    
+                    // Update download button
+                    document.querySelector('.download-modal-btn').setAttribute('data-photo-url', photoUrl);
+                    document.querySelector('.download-modal-btn').setAttribute('data-photo-title', title);
+                    
+                    // Set photo ID for comment form
+                    document.getElementById('commentPhotoId').value = photoId;
+                    
+                    // Load photo stats (likes, dislikes, comments count)
+                    fetch(`/gallery/comments/${photoId}/stats`)
+                        .then(response => response.json())
+                        .then(stats => {
+                            // Update like/dislike counts
+                            document.querySelectorAll('.like-count').forEach(el => el.textContent = stats.likes);
+                            document.querySelectorAll('.dislike-count').forEach(el => el.textContent = stats.dislikes);
+                            document.querySelectorAll('.comment-count').forEach(el => el.textContent = stats.comments_count);
+                            
+                            // Update button states
+                            if (stats.user_reaction) {
+                                const likeBtn = photoModal.querySelector('.like-btn-modal');
+                                const dislikeBtn = photoModal.querySelector('.dislike-btn-modal');
+                                
+                                if (stats.user_reaction === 'like') {
+                                    likeBtn.classList.add('btn-primary');
+                                    likeBtn.classList.remove('btn-outline-secondary');
+                                    dislikeBtn.classList.remove('btn-primary');
+                                    dislikeBtn.classList.add('btn-outline-secondary');
+                                } else if (stats.user_reaction === 'dislike') {
+                                    dislikeBtn.classList.add('btn-primary');
+                                    dislikeBtn.classList.remove('btn-outline-secondary');
+                                    likeBtn.classList.remove('btn-primary');
+                                    likeBtn.classList.add('btn-outline-secondary');
+                                }
+                            }
+                        })
+                        .catch(error => console.error('Error loading photo stats:', error));
+                    
+                    // Load comments
+                    loadComments(photoId);
+                });
+            }
+            
+            // Handle modal like/dislike buttons
+            document.querySelector('.like-btn-modal')?.addEventListener('click', function() {
+                const photoId = this.getAttribute('data-photo-id');
+                handleReaction(photoId, 'like');
+            });
+            
+            document.querySelector('.dislike-btn-modal')?.addEventListener('click', function() {
+                const photoId = this.getAttribute('data-photo-id');
+                handleReaction(photoId, 'dislike');
+            });
+            
+            // Handle download form submission
+            document.getElementById('downloadForm')?.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const formData = new FormData(this);
+                const photoId = formData.get('photo_id');
+                const photoUrl = formData.get('photo_url');
+                
+                // Create a hidden iframe to handle the download
+                const iframe = document.createElement('iframe');
+                iframe.style.display = 'none';
+                document.body.appendChild(iframe);
+                
+                // Set the iframe's src to trigger the download
+                iframe.src = '{{ route("gallery.download") }}?photo_id=' + encodeURIComponent(photoId) + '&photo_url=' + encodeURIComponent(photoUrl);
+                
+                // Clean up after a short delay
+                setTimeout(() => {
+                    document.body.removeChild(iframe);
+                    
+                    // Close the modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('downloadModal'));
+                    if (modal) modal.hide();
+                }, 3000);
+                
+                // Also send a POST request to log the download
+                fetch('{{ route("gallery.download") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({
+                        photo_id: photoId,
+                        photo_url: photoUrl
+                    })
+                }).catch(error => console.error('Download log error:', error));
+            });
+            // Handle purpose selection in download form
+            document.getElementById('purpose')?.addEventListener('change', function() {
+                const otherPurposeContainer = document.getElementById('otherPurposeContainer');
+                if (this.value === 'other') {
+                    otherPurposeContainer.style.display = 'block';
+                    document.getElementById('other_purpose').setAttribute('required', 'required');
+                } else {
+                    otherPurposeContainer.style.display = 'none';
+                    document.getElementById('other_purpose').removeAttribute('required');
+                }
+            });
+            
+            // Handle category selection
+            const categoryBtns = document.querySelectorAll('.category-btn, .subcategory-item');
+            const categoryFilter = document.getElementById('categoryFilter');
+            const activeCategoryDisplay = document.getElementById('activeCategory');
+            const applyFilterBtn = document.getElementById('applyFilter');
+            
+            // Initialize active state
+            const activeCategory = '{{ request('category') }}';
+            if (activeCategory) {
+                // Find and activate the corresponding button
+                categoryBtns.forEach(btn => {
+                    if (btn.dataset.category === activeCategory) {
+                        btn.classList.add('active');
+                        if (btn.classList.contains('dropdown-item')) {
+                            // If it's a subcategory, also activate its parent dropdown
+                            const dropdown = btn.closest('.dropdown');
+                            if (dropdown) {
+                                const dropdownBtn = dropdown.querySelector('.dropdown-toggle');
+                                if (dropdownBtn) {
+                                    dropdownBtn.classList.add('active');
+                                }
+                            }
+                        }
+                    }
+                });
+            } else {
+                // Activate 'Semua' button if no category is selected
+                document.querySelector('.category-btn[data-category=""]')?.classList.add('active');
+            }
+            
+            // Handle category button clicks
+            categoryBtns.forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const selectedCategory = this.dataset.category;
+                    
+                    // Update active states
+                    document.querySelectorAll('.category-btn, .subcategory-item').forEach(el => {
+                        el.classList.remove('active');
+                    });
+                    
+                    if (selectedCategory === '') {
+                        // 'Semua' category selected
+                        document.querySelector('.category-btn[data-category=""]').classList.add('active');
+                        categoryFilter.value = '';
+                        activeCategoryDisplay.innerHTML = '';
+                    } else if (this.classList.contains('dropdown-toggle')) {
+                        // Main category selected
+                        this.classList.add('active');
+                        categoryFilter.value = selectedCategory;
+                        activeCategoryDisplay.innerHTML = `Kategori aktif: <span class="text-primary">${selectedCategory}</span>`;
+                    } else {
+                        // Subcategory selected
+                        this.classList.add('active');
+                        const parentDropdown = this.closest('.dropdown');
+                        if (parentDropdown) {
+                            parentDropdown.querySelector('.dropdown-toggle').classList.add('active');
+                        }
+                        categoryFilter.value = selectedCategory;
+                        activeCategoryDisplay.innerHTML = `Kategori aktif: <span class="text-primary">${selectedCategory}</span>`;
+                    }
+                });
+            });
+            
+            // Apply filter button
+            applyFilterBtn.addEventListener('click', function() {
+                const category = categoryFilter.value;
+                const sortBy = document.getElementById('sortBy').value;
+                
+                // Build URL with query parameters
+                const url = new URL(window.location.href.split('?')[0]);
+                if (category) url.searchParams.set('category', category);
+                else url.searchParams.delete('category');
+                
+                if (sortBy) url.searchParams.set('sort', sortBy);
+                
+                window.location.href = url.toString();
+            });
+            
+            // Handle sort change
+            document.getElementById('sortBy').addEventListener('change', function() {
+                applyFilterBtn.click();
+            });
+            // Current photo ID for interactions
+            let currentPhotoId = null;
+            
+            // Handle gallery item click
+            document.querySelectorAll('.gallery-item').forEach(item => {
+                item.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    // Get photo data from data attributes
+                    const photoId = this.getAttribute('data-id');
+                    const imageUrl = this.getAttribute('data-image');
+                    const title = this.getAttribute('data-title');
+                    const likes = this.getAttribute('data-likes');
+                    const dislikes = this.getAttribute('data-dislikes');
+                    const commentsCount = this.getAttribute('data-comments');
+                    
+                    // Update modal with photo data
+                    document.getElementById('modalImage').src = imageUrl;
+                    document.getElementById('modalTitle').textContent = title;
+                    document.getElementById('likeCount').textContent = likes;
+                    document.getElementById('dislikeCount').textContent = dislikes;
+                    document.getElementById('commentsCount').textContent = commentsCount;
+                    document.getElementById('commentPhotoId').value = photoId;
+                    document.getElementById('downloadPhotoId').value = photoId;
+                    
+                    // Store current photo ID
+                    currentPhotoId = photoId;
+                    
+                    // Load comments for this photo
+                    loadComments(photoId);
+                });
+            });
+            
+            // Handle like/dislike buttons
+            document.querySelectorAll('.like-btn, .dislike-btn').forEach(button => {
+                button.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const action = this.getAttribute('data-action');
+                    const isLike = action === 'like';
+                    
+                    // Toggle active state
+                    const isActive = this.classList.contains('active');
+                    const otherButton = isLike 
+                        ? document.querySelector('.dislike-btn')
+                        : document.querySelector('.like-btn');
+                    
+                    // If already active, remove the reaction
+                    if (isActive) {
+                        sendReaction(currentPhotoId, 'remove');
+                        this.classList.remove('active', isLike ? 'btn-danger' : 'btn-secondary');
+                        this.classList.add(isLike ? 'btn-outline-danger' : 'btn-outline-secondary');
+                    } else {
+                        // Otherwise, add the reaction
+                        sendReaction(currentPhotoId, action);
+                        this.classList.remove(isLike ? 'btn-outline-danger' : 'btn-outline-secondary');
+                        this.classList.add('active', isLike ? 'btn-danger' : 'btn-secondary');
+                        
+                        // If other button was active, deactivate it
+                        if (otherButton.classList.contains('active')) {
+                            otherButton.classList.remove('active', isLike ? 'btn-secondary' : 'btn-danger');
+                            otherButton.classList.add(isLike ? 'btn-outline-secondary' : 'btn-outline-danger');
+                        }
+                    }
+                    
+                    // Update the counter
+                    const counter = isLike ? 'likeCount' : 'dislikeCount';
+                    const currentCount = parseInt(document.getElementById(counter).textContent);
+                    document.getElementById(counter).textContent = isActive ? currentCount - 1 : currentCount + 1;
+                });
+            });
+            
+            // Handle comment form submission
+            document.getElementById('commentForm')?.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const formData = new FormData(this);
+                
+                fetch('{{ route("gallery.comment") }}', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        photo_id: formData.get('photo_id'),
+                        comment: formData.get('comment')
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Clear the comment field
+                        this.querySelector('textarea').value = '';
+                        
+                        // Reload comments
+                        loadComments(currentPhotoId);
+                        
+                        // Update comments count
+                        const commentsCount = document.getElementById('commentsCount');
+                        commentsCount.textContent = parseInt(commentsCount.textContent) + 1;
+                        
+                        // Show success message
+                        alert('Komentar berhasil ditambahkan');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Terjadi kesalahan saat mengirim komentar');
+                });
+            });
+            
+            // Handle download button click
+            document.getElementById('downloadBtn')?.addEventListener('click', function(e) {
+                e.preventDefault();
+                // Show download modal
+                const downloadModal = new bootstrap.Modal(document.getElementById('downloadModal'));
+                downloadModal.show();
+            });
+            
+            // Handle download form submission
+            document.getElementById('downloadForm')?.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const formData = new FormData(this);
+                const photoId = formData.get('photo_id');
+                
+                // Here you would typically send this data to your server
+                // and then trigger the download
+                
+                // For now, we'll just show a success message
+                alert('Terima kasih! File akan segera diunduh.');
+                
+                // Close the modal
+                const downloadModal = bootstrap.Modal.getInstance(document.getElementById('downloadModal'));
+                downloadModal.hide();
+                
+                // In a real implementation, you would do something like:
+                // window.location.href = `/photos/${photoId}/download?name=${encodeURIComponent(formData.get('name'))}&email=${encodeURIComponent(formData.get('email'))}&purpose=${encodeURIComponent(formData.get('purpose'))}`;
+            });
+            
+            // Handle filter form submission
+            document.getElementById('applyFilter')?.addEventListener('click', function() {
+                const category = document.getElementById('categoryFilter').value;
+                const sortBy = document.getElementById('sortBy').value;
+                
+                // Build the query string
+                const params = new URLSearchParams();
+                if (category) params.append('category', category);
+                if (sortBy) params.append('sort', sortBy);
+                
+                // Reload the page with the new filters
+                window.location.href = `${window.location.pathname}?${params.toString()}`;
+            });
+            
+            // Load comments for a photo
+            function loadComments(photoId) {
+                fetch(`/gallery/comments/${photoId}`)
+                    .then(response => response.json())
+                    .then(comments => {
+                        const container = document.getElementById('commentsContainer');
+                        container.innerHTML = ''; // Clear existing comments
+                        
+                        if (comments.length === 0) {
+                            container.innerHTML = '<div class="text-muted small">Belum ada komentar.</div>';
+                            return;
+                        }
+                        
+                        comments.forEach(comment => {
+                            const commentElement = document.createElement('div');
+                            commentElement.className = 'mb-3 pb-2 border-bottom';
+                            commentElement.innerHTML = `
+                                <div class="d-flex justify-content-between">
+                                    <strong>${comment.user_name}</strong>
+                                    <small class="text-muted">${new Date(comment.created_at).toLocaleDateString()}</small>
+                                </div>
+                                <div>${comment.comment}</div>
+                            `;
+                            container.appendChild(commentElement);
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Error loading comments:', error);
+                        document.getElementById('commentsContainer').innerHTML = 
+                            '<div class="text-danger small">Gagal memuat komentar.</div>';
+                    });
+            }
+            
+            // Function to send reaction (like/dislike)
+            function sendReaction(photoId, action) {
+                fetch('{{ route("gallery.react") }}', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({
+                        photo_id: photoId,
+                        action: action
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Update the counters
+                        if (data.likes !== undefined) {
+                            document.getElementById('likeCount').textContent = data.likes;
+                        }
+                        if (data.dislikes !== undefined) {
+                            document.getElementById('dislikeCount').textContent = data.dislikes;
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Terjadi kesalahan saat menyimpan reaksi Anda');
+                });
+            }
+            
+            // Initialize tooltips
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        });
+    </script>
+    @endpush
+        <!-- Filter Section -->
+        <div class="filter-section">
+            <h5 class="filter-title">Filter Berdasarkan Kategori</h5>
+            
+            <div class="filter-tags">
+                <a href="{{ route('gallery') }}" class="filter-tag {{ !request('category') ? 'active' : '' }}">
+                    Semua
+                </a>
+                
+                @foreach($umbrellaCategories as $umbrella => $subcategories)
+                    <div class="dropdown d-inline-block">
+                        <button class="filter-tag dropdown-toggle {{ $activeUmbrella === $umbrella ? 'active' : '' }}" 
+                                type="button" 
+                                id="dropdown-{{ Str::slug($umbrella) }}" 
+                                data-bs-toggle="dropdown" 
+                                aria-expanded="false">
+                            {{ $umbrella }}
+                        </button>
+                        <ul class="dropdown-menu" aria-labelledby="dropdown-{{ Str::slug($umbrella) }}">
+                            @foreach($subcategories as $subcategory)
+                                <li>
+                                    <a class="dropdown-item {{ request('category') === $subcategory ? 'active' : '' }}" 
+                                       href="?category={{ urlencode($subcategory) }}">
+                                        {{ $subcategory }}
+                                    </a>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+
+        <!-- Gallery Grid -->
+        @if(count($items) > 0)
+            <div class="gallery-grid">
+                @foreach($items as $item)
+                    <a href="{{ $item['url'] }}" class="gallery-item" data-src="{{ $item['url'] }}" data-sub-html="<h4>{{ $item['title'] }}</h4><p>{{ $item['category'] ?? 'Lainnya' }}</p>">
+                        <div class="gallery-img-container">
+                            <img src="{{ $item['url'] }}" alt="{{ $item['title'] }}" class="gallery-img">
+                        </div>
+                        <div class="gallery-overlay">
+                            <h5 class="gallery-title">{{ $item['title'] }}</h5>
+                            <div class="gallery-category">
+                                <i class="fas fa-folder"></i> {{ $item['category'] ?? 'Lainnya' }}
+                            </div>
+                        </div>
+                    </a>
+                @endforeach
+            </div>
+        @else
+            <div class="empty-state">
+                <i class="far fa-images"></i>
+                <h4>Tidak ada foto yang ditemukan</h4>
+                <p>Coba gunakan filter yang berbeda atau kunjungi kembali nanti</p>
+                <a href="{{ route('gallery') }}" class="btn btn-primary">
+                    <i class="fas fa-sync-alt me-2"></i> Reset Filter
+                </a>
+            </div>
+        @endif
+    </div>
+</main>
+
+<!-- Back to Top Button -->
+<button type="button" class="btn btn-primary btn-floating btn-lg rounded-circle" id="btn-back-to-top">
+    <i class="fas fa-arrow-up"></i>
+</button>
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lightgallery@2.1.3/lightgallery.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lightgallery@2.1.3/plugins/zoom/lg-zoom.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lightgallery@2.1.3/plugins/fullscreen/lg-fullscreen.umd.js"></script>
+
+<script>
+    // Initialize lightGallery
+    document.addEventListener('DOMContentLoaded', function() {
+        // LightGallery initialization
+        if (document.querySelector('.gallery-grid')) {
+            lightGallery(document.querySelector('.gallery-grid'), {
+                selector: '.gallery-item',
+                speed: 500,
+                download: true,
+                zoom: true,
+                counter: true,
+                getCaptionFromTitleOrAlt: false,
+                enableDrag: true,
+                enableSwipe: true,
+                preload: 3,
+                exThumbImage: 'data-src'
+            });
+        }
+
+        // Back to top button
+        const backToTopButton = document.getElementById('btn-back-to-top');
+        
+        window.addEventListener('scroll', () => {
+            if (window.pageYOffset > 300) {
+                backToTopButton.style.display = 'block';
+            } else {
+                backToTopButton.style.display = 'none';
+            }
+        });
+        
+        backToTopButton.addEventListener('click', () => {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
+
+        // Initialize dropdown toggles
+        const dropdownElementList = [].slice.call(document.querySelectorAll('.dropdown-toggle'));
+        dropdownElementList.forEach(dropdownToggleEl => {
+            return new bootstrap.Dropdown(dropdownToggleEl);
+        });
+    });
+</script>
+@endpush
+
+@endsection

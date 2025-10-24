@@ -1,0 +1,173 @@
+{
+  "info": {
+    "_postman_id": "9e6a7c2a-6d54-4f4a-93f4-3c3d9a2f7d88",
+    "name": "Galeri SMKN 4 Bogor API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Collection to test all API endpoints for Galeri SMKN 4 Bogor. Uses {{base_url}} and {{token}} environment variables."
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "url": { "raw": "{{base_url}}/api/register", "host": ["{{base_url}}"], "path": ["api", "register"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Tester\",\n  \"email\": \"tester@example.com\",\n  \"password\": \"password\",\n  \"password_confirmation\": \"password\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "const token = json.token || json.access_token || (json.data && json.data.token);",
+                  "if (token) { pm.environment.set('token', token); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "url": { "raw": "{{base_url}}/api/login", "host": ["{{base_url}}"], "path": ["api", "login"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"tester@example.com\",\n  \"password\": \"password\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+            "url": { "raw": "{{base_url}}/api/logout", "host": ["{{base_url}}"], "path": ["api", "logout"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Public",
+      "item": [
+        {
+          "name": "List Kategori (Public)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/kategori", "host": ["{{base_url}}"], "path": ["api", "kategori"] }
+          }
+        },
+        {
+          "name": "List Posts (Public)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/posts", "host": ["{{base_url}}"], "path": ["api", "posts"] }
+          }
+        },
+        {
+          "name": "List Agenda (Public)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/agenda", "host": ["{{base_url}}"], "path": ["api", "agenda"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Petugas",
+      "item": [
+        { "name": "Index",   "request": { "method": "GET",    "url": { "raw": "{{base_url}}/api/petugas", "host": ["{{base_url}}"], "path": ["api","petugas"] } } },
+        { "name": "Store",   "request": { "method": "POST",   "header": [{"key":"Content-Type","value":"application/json"}], "url": { "raw": "{{base_url}}/api/petugas", "host": ["{{base_url}}"], "path": ["api","petugas"] }, "body": {"mode":"raw","raw":"{\n  \"nama\": \"Petugas 1\",\n  \"email\": \"petugas1@example.com\",\n  \"password\": \"password\"\n}"} } },
+        { "name": "Show",    "request": { "method": "GET",    "url": { "raw": "{{base_url}}/api/petugas/1", "host": ["{{base_url}}"], "path": ["api","petugas","1"] } } },
+        { "name": "Update",  "request": { "method": "PUT",    "header": [{"key":"Content-Type","value":"application/json"}], "url": { "raw": "{{base_url}}/api/petugas/1", "host": ["{{base_url}}"], "path": ["api","petugas","1"] }, "body": {"mode":"raw","raw":"{\n  \"nama\": \"Petugas 1 Updated\"\n}"} } },
+        { "name": "Delete",  "request": { "method": "DELETE", "url": { "raw": "{{base_url}}/api/petugas/1", "host": ["{{base_url}}"], "path": ["api","petugas","1"] } } }
+      ]
+    },
+    {
+      "name": "Kategori",
+      "item": [
+        { "name": "Index",   "request": { "method": "GET",    "url": { "raw": "{{base_url}}/api/kategori", "host": ["{{base_url}}"], "path": ["api","kategori"] } } },
+        { "name": "Store",   "request": { "method": "POST",   "header": [{"key":"Content-Type","value":"application/json"}], "url": { "raw": "{{base_url}}/api/kategori", "host": ["{{base_url}}"], "path": ["api","kategori"] }, "body": {"mode":"raw","raw":"{\n  \"judul\": \"Kategori A\"\n}"} } },
+        { "name": "Show",    "request": { "method": "GET",    "url": { "raw": "{{base_url}}/api/kategori/1", "host": ["{{base_url}}"], "path": ["api","kategori","1"] } } },
+        { "name": "Update",  "request": { "method": "PUT",    "header": [{"key":"Content-Type","value":"application/json"}], "url": { "raw": "{{base_url}}/api/kategori/1", "host": ["{{base_url}}"], "path": ["api","kategori","1"] }, "body": {"mode":"raw","raw":"{\n  \"judul\": \"Kategori A Update\"\n}"} } },
+        { "name": "Delete",  "request": { "method": "DELETE", "url": { "raw": "{{base_url}}/api/kategori/1", "host": ["{{base_url}}"], "path": ["api","kategori","1"] } } }
+      ]
+    },
+    {
+      "name": "Posts",
+      "item": [
+        { "name": "Index",   "request": { "method": "GET",    "url": { "raw": "{{base_url}}/api/posts", "host": ["{{base_url}}"], "path": ["api","posts"] } } },
+        { "name": "Store",   "request": { "method": "POST",   "header": [{"key":"Content-Type","value":"application/json"}], "url": { "raw": "{{base_url}}/api/posts", "host": ["{{base_url}}"], "path": ["api","posts"] }, "body": {"mode":"raw","raw":"{\n  \"judul\": \"Post 1\",\n  \"kategori_id\": 1,\n  \"isi\": \"Konten\",\n  \"petugas_id\": 1,\n  \"status\": \"draft\"\n}"} } },
+        { "name": "Show",    "request": { "method": "GET",    "url": { "raw": "{{base_url}}/api/posts/1", "host": ["{{base_url}}"], "path": ["api","posts","1"] } } },
+        { "name": "Update",  "request": { "method": "PUT",    "header": [{"key":"Content-Type","value":"application/json"}], "url": { "raw": "{{base_url}}/api/posts/1", "host": ["{{base_url}}"], "path": ["api","posts","1"] }, "body": {"mode":"raw","raw":"{\n  \"judul\": \"Post 1 Update\",\n  \"status\": \"published\"\n}"} } },
+        { "name": "Delete",  "request": { "method": "DELETE", "url": { "raw": "{{base_url}}/api/posts/1", "host": ["{{base_url}}"], "path": ["api","posts","1"] } } }
+      ]
+    },
+    {
+      "name": "Profile",
+      "item": [
+        { "name": "Index",   "request": { "method": "GET",    "url": { "raw": "{{base_url}}/api/profile", "host": ["{{base_url}}"], "path": ["api","profile"] } } },
+        { "name": "Store",   "request": { "method": "POST",   "header": [{"key":"Content-Type","value":"application/json"}], "url": { "raw": "{{base_url}}/api/profile", "host": ["{{base_url}}"], "path": ["api","profile"] }, "body": {"mode":"raw","raw":"{\n  \"nama\": \"Nama Sekolah\",\n  \"alamat\": \"Alamat\"\n}"} } },
+        { "name": "Show",    "request": { "method": "GET",    "url": { "raw": "{{base_url}}/api/profile/1", "host": ["{{base_url}}"], "path": ["api","profile","1"] } } },
+        { "name": "Update",  "request": { "method": "PUT",    "header": [{"key":"Content-Type","value":"application/json"}], "url": { "raw": "{{base_url}}/api/profile/1", "host": ["{{base_url}}"], "path": ["api","profile","1"] }, "body": {"mode":"raw","raw":"{\n  \"nama\": \"Nama Sekolah Update\"\n}"} } },
+        { "name": "Delete",  "request": { "method": "DELETE", "url": { "raw": "{{base_url}}/api/profile/1", "host": ["{{base_url}}"], "path": ["api","profile","1"] } } }
+      ]
+    },
+    {
+      "name": "Agenda",
+      "item": [
+        { "name": "Index",   "request": { "method": "GET",    "url": { "raw": "{{base_url}}/api/agenda", "host": ["{{base_url}}"], "path": ["api","agenda"] } } },
+        { "name": "Store",   "request": { "method": "POST",   "header": [{"key":"Content-Type","value":"application/json"}], "url": { "raw": "{{base_url}}/api/agenda", "host": ["{{base_url}}"], "path": ["api","agenda"] }, "body": {"mode":"raw","raw":"{\n  \"judul\": \"Agenda 1\",\n  \"kategori_id\": 1\n}"} } },
+        { "name": "Show",    "request": { "method": "GET",    "url": { "raw": "{{base_url}}/api/agenda/1", "host": ["{{base_url}}"], "path": ["api","agenda","1"] } } },
+        { "name": "Update",  "request": { "method": "PUT",    "header": [{"key":"Content-Type","value":"application/json"}], "url": { "raw": "{{base_url}}/api/agenda/1", "host": ["{{base_url}}"], "path": ["api","agenda","1"] }, "body": {"mode":"raw","raw":"{\n  \"judul\": \"Agenda 1 Update\"\n}"} } },
+        { "name": "Delete",  "request": { "method": "DELETE", "url": { "raw": "{{base_url}}/api/agenda/1", "host": ["{{base_url}}"], "path": ["api","agenda","1"] } } }
+      ]
+    },
+    {
+      "name": "Gallery",
+      "item": [
+        { "name": "Index",   "request": { "method": "GET",    "url": { "raw": "{{base_url}}/api/gallery", "host": ["{{base_url}}"], "path": ["api","gallery"] } } },
+        { "name": "Store",   "request": { "method": "POST",   "header": [{"key":"Content-Type","value":"application/json"}], "url": { "raw": "{{base_url}}/api/gallery", "host": ["{{base_url}}"], "path": ["api","gallery"] }, "body": {"mode":"raw","raw":"{\n  \"post_id\": 1,\n  \"url\": \"https://example.com/image.jpg\"\n}"} } },
+        { "name": "Show",    "request": { "method": "GET",    "url": { "raw": "{{base_url}}/api/gallery/1", "host": ["{{base_url}}"], "path": ["api","gallery","1"] } } },
+        { "name": "Update",  "request": { "method": "PUT",    "header": [{"key":"Content-Type","value":"application/json"}], "url": { "raw": "{{base_url}}/api/gallery/1", "host": ["{{base_url}}"], "path": ["api","gallery","1"] }, "body": {"mode":"raw","raw":"{\n  \"url\": \"https://example.com/image2.jpg\"\n}"} } },
+        { "name": "Delete",  "request": { "method": "DELETE", "url": { "raw": "{{base_url}}/api/gallery/1", "host": ["{{base_url}}"], "path": ["api","gallery","1"] } } }
+      ]
+    },
+    {
+      "name": "Foto",
+      "item": [
+        { "name": "Index",   "request": { "method": "GET",    "url": { "raw": "{{base_url}}/api/foto", "host": ["{{base_url}}"], "path": ["api","foto"] } } },
+        { "name": "Store",   "request": { "method": "POST",   "header": [{"key":"Content-Type","value":"application/json"}], "url": { "raw": "{{base_url}}/api/foto", "host": ["{{base_url}}"], "path": ["api","foto"] }, "body": {"mode":"raw","raw":"{\n  \"gallery_id\": 1,\n  \"url\": \"https://example.com/foto.jpg\"\n}"} } },
+        { "name": "Show",    "request": { "method": "GET",    "url": { "raw": "{{base_url}}/api/foto/1", "host": ["{{base_url}}"], "path": ["api","foto","1"] } } },
+        { "name": "Update",  "request": { "method": "PUT",    "header": [{"key":"Content-Type","value":"application/json"}], "url": { "raw": "{{base_url}}/api/foto/1", "host": ["{{base_url}}"], "path": ["api","foto","1"] }, "body": {"mode":"raw","raw":"{\n  \"url\": \"https://example.com/foto2.jpg\"\n}"} } },
+        { "name": "Delete",  "request": { "method": "DELETE", "url": { "raw": "{{base_url}}/api/foto/1", "host": ["{{base_url}}"], "path": ["api","foto","1"] } } }
+      ]
+    }
+  ]
+}
+
+
